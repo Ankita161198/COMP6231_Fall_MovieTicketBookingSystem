@@ -89,11 +89,8 @@ public class Client {
                             movieName=sc.nextLine();
                             System.out.println("Enter number of tickets you would like to book : ");
                             int numberOfTickets=sc.nextInt();
-                            if(movieID.substring(0,3).equals(userID.substring(0,3))){
-                                System.out.println(customerInterface.bookMovieTickets(userID, movieID,movieName,numberOfTickets,location));
-                            }else{
-                                System.out.println(customerInterface.bookMovieTickets(userID, movieID,movieName,numberOfTickets,checkLocation(movieID)));
-                            }
+                            System.out.println(customerInterface.bookMovieTickets(userID, movieID,movieName,numberOfTickets,checkSameServer(movieID,userID)));
+
                             break;
                         case 2:
                             System.out.println(customerInterface.getBookingSchedule(userID));
@@ -158,5 +155,12 @@ public class Client {
                 "4.Exit\n";
     }
 
+    public static boolean checkSameServer(String movieName,String userID){
+        if(userID.substring(0,3)==movieName.substring(0,3)){
+            return true;
+        }else {
+            return false;
+        }
+    }
 
 }

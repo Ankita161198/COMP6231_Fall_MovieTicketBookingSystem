@@ -30,14 +30,15 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     public String serverName;
     public HashMap<String, HashMap<String, Integer>> movieData = new HashMap<>();
 
+
+
     public HashMap<String, HashMap<String, HashMap<String,Integer>>> customerData = new HashMap<>();
-    //CustomerId-->MovieName-->MovieId-->Noofticketsbooked;
 
     public HashMap<String, HashMap<String, HashMap<String,Integer>>> customerSchedule = new HashMap<>();
 
-    //Moviename-->MovieID-->customerID->>no-of-tickets;
     public static HashMap<String,Integer> serverPort =new HashMap<>();
 
+    public int requestType;
 
     public int[] portsToPing=new int[2];
 
@@ -132,8 +133,8 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
         }
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
-        Future<String> response1 = executor.submit(() -> sendRequestToServer(movieName, this.portsToPing[0]));
-        Future<String> response2 =executor.submit(() -> sendRequestToServer(movieName,this.portsToPing[1]));
+        Future<String> response1 = executor.submit(() -> sendRequestToServer(movieName, this.portsToPing[0],1,null));
+        Future<String> response2 =executor.submit(() -> sendRequestToServer(movieName,this.portsToPing[1],1,null));
 
 
         executor.shutdown();
@@ -147,7 +148,9 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     }
 
 
-    public String sendRequestToServer(String movieName, int port) {
+    public String sendRequestToServer(String movieName, int port,int requestType,String movieID) {
+        //1:listmovies
+        //2:bookschedule
         try (DatagramSocket socket = new DatagramSocket()) {
             byte[] requestData = movieName.getBytes();
             InetAddress serverAddress = InetAddress.getLocalHost();
@@ -167,8 +170,7 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
 
 
     // @Override
-    public String bookMovieTickets(String customerID, String movieID, String movieName, int numberOfTickets,String serverName) {
-        this.serverName = serverName;
+    public String bookMovieTickets(String customerID, String movieID, String movieName, int numberOfTickets,Boolean serverName) {
         int flag = 0;
         for (Map.Entry<String, HashMap<String, Integer>> empMap : this.movieData.entrySet()) {
             if (movieName.equals(empMap.getKey())) {
@@ -179,9 +181,16 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                         customerData.get(movieName).put(movieID, new HashMap<String,Integer>());
                         customerData.get(movieName).get(movieID).put(customerID, numberOfTickets);
 
-                        customerData.put(customerID, new HashMap<String, HashMap<String,Integer>>());
-                        customerData.get(customerID).put(movieID, new HashMap<String,Integer>());
-                        customerData.get(customerID).get(movieID).put(movieName, numberOfTickets);
+                        if( customerSchedule.get(customerID)==null){
+
+                            customerSchedule.put(customerID, new HashMap<String, HashMap<String,Integer>>());
+                            customerSchedule.get(customerID).put(movieName, new HashMap<String,Integer>());
+                            customerSchedule.get(customerID).get(movieName).put(movieID,numberOfTickets);
+                        }else{
+
+                            customerSchedule.get(customerID).put(movieName, new HashMap<String,Integer>());
+                            customerSchedule.get(customerID).get(movieName).put(movieID,numberOfTickets);
+                        }
                         this.movieData.get(movieName).replace(movieID, addMap.get(movieID) - numberOfTickets);
                         flag=0;
                         break;
@@ -199,9 +208,9 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
             }
 
 
-        }
-        System.out.println(customerData.entrySet());
-        System.out.println(movieData.entrySet());
+            }
+        System.out.println("CUSTOMER DATA: "+customerData.entrySet());
+        System.out.println("CUSTOMER SCHEDULE: "+customerSchedule.entrySet());
 
          if (flag == 1) {
             return "Can't process this request as seats available for this show are" + this.movieData.get(movieName).get(movieID);
@@ -219,22 +228,27 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     //  @Override
     public String getBookingSchedule(String customerID) {
         String dataToSend="";
+        if (customerSchedule.containsKey(customerID)) {
+            HashMap<String, HashMap<String, Integer>> schedule = customerSchedule.get(customerID);
+            dataToSend+="Customer ID: " + customerID+"\n";
+            System.out.println("Customer: " + customerID);
 
-        for (Map.Entry<String, HashMap<String, HashMap<String,Integer>>> empMap : customerSchedule.entrySet()) {
+            for (Map.Entry<String, HashMap<String, Integer>> innerMapEntry : schedule.entrySet()) {
+                String movie_name = innerMapEntry.getKey();
+                HashMap<String, Integer> nameMap = innerMapEntry.getValue();
+                dataToSend+="\tMovie Name: " + movie_name+"\n";
+              //  System.out.println("\tMovie Name: " + movie_name);
 
-            if(customerID.equals(empMap.getKey())){
+                for (Map.Entry<String, Integer> appointment : nameMap.entrySet()) {
+                    String movie_id = appointment.getKey();
+                    Integer noft = appointment.getValue();
+                    dataToSend+="\t\tMovie ID: " + movie_id + ", tickets Booked: " + noft+"\n";
 
-                    HashMap<String, HashMap<String,Integer>> addMap = empMap.getValue();
-                for (Map.Entry<String, Integer> last : addMap.get(customerID).entrySet()) {
-                    HashMap<String, HashMap<String,Integer>> entry = empMap.getValue();
-
-                    for ( String key : entry.keySet() ) {
-                        dataToSend+=entry.entrySet()+"\n";
-                    }
+                    System.out.println("\t\tMovie ID: " + movie_id + ", tickets Booked: " + noft);
                 }
-
             }
         }
+
 
         return dataToSend;
     }

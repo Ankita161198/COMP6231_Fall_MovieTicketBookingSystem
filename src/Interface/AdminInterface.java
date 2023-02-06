@@ -10,7 +10,7 @@ public interface AdminInterface extends Remote {
     public String removeMovieSlots (String movieID,String movieName) throws RemoteException;
     public String listMovieShowsAvailability (String movieName) throws RemoteException, ExecutionException, InterruptedException;
 
-    public String bookMovieTickets (String customerID,String movieID,String movieName,int numberOfTickets,String serverName) throws RemoteException;
+    public String bookMovieTickets (String customerID,String movieID,String movieName,int numberOfTickets,Boolean serverName) throws RemoteException;
     public String getBookingSchedule (String customerID)  throws RemoteException;
     public String cancelMovieTickets (String customerID,String movieID, String movieName,int numberOfTickets) throws RemoteException;
 

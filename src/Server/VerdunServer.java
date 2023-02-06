@@ -42,7 +42,7 @@ public class VerdunServer {
                 socket.receive(response);
                 String responseString =new String(response.getData()).trim();
                 String stringToSend="";
-                // System.out.println(responseString);
+                System.out.println(responseString);
                 for (Map.Entry<String, HashMap<String, Integer>> empMap : obj.movieData.entrySet()) {
                  //   System.out.println("hit");
                     if(responseString.equals(empMap.getKey())){
