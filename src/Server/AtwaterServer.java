@@ -38,23 +38,34 @@ public class AtwaterServer {
             Registry registry = LocateRegistry.createRegistry(3001);
             Naming.rebind("Atwater", obj);
             System.out.println("Atwater server ready");
+
             DatagramSocket socket = new DatagramSocket(5099);
             while(true)
             {
                 byte[] responseData = new byte[1024];
                 DatagramPacket response = new DatagramPacket(responseData, responseData.length);
                 socket.receive(response);
-                String responseString =new String(response.getData()).trim();
+                String[] responseString =new String(response.getData()).trim().split(";");
+                int port=Integer.parseInt(responseString[0]);
+                String userID=responseString[1];
+                String movieName=responseString[2];
+                String movieID=responseString[3];
+                int numberOfTickets=Integer.parseInt(responseString[4]);
+
                 String stringToSend="";
-                for (Map.Entry<String, HashMap<String, Integer>> empMap : obj.movieData.entrySet()) {
-                   // System.out.println("hit");
-                    if(responseString.equals(empMap.getKey())){
-                        HashMap<String, Integer> addMap = empMap.getValue();
-                        for ( String key : addMap.keySet() ) {
-                            stringToSend+=key+" ";
-                        }
-                    }
+
+                switch (port){
+                    case 1:
+                        stringToSend=obj.receiveFromServerListShows(movieName);
+                        break;
+                    case 2:
+                        stringToSend=obj.receiveFromServerBookTickets(userID, movieID, movieName,numberOfTickets);
+                        break;
+                    case 3:
+                        stringToSend=obj.receiveFromServerCancelTickets(userID, movieID, movieName,numberOfTickets);
+                        break;
                 }
+
                 System.out.println(stringToSend);
                 byte[] b2= stringToSend.getBytes();
                 InetAddress ia=InetAddress.getLocalHost();
@@ -62,6 +73,8 @@ public class AtwaterServer {
                 socket.send(dp1);
 
             }
+
+
 
 
         } catch (Exception e) {

@@ -97,7 +97,18 @@ public class Client {
 
                             break;
                         case 3:
-                            System.out.println("list");
+                            System.out.println("----------------- YOUR BOOKING SCHEDULE --------------------");
+                            System.out.println(customerInterface.getBookingSchedule(userID));
+                            System.out.println("------------------------------------------------------------");
+                            System.out.println("Please enter the movie name you want to cancel the tickets for:-");
+                            sc.nextLine();
+                            movieName=sc.nextLine();
+                            System.out.println("Please enter movie ID for the same");
+                            movieID=sc.nextLine();
+                            System.out.println("Please enter the number of tickets you want to cancel");
+                            numberOfTickets=sc.nextInt();
+                            System.out.println(customerInterface.cancelMovieTickets(userID,movieID,movieName,numberOfTickets));
+                            System.out.println("");
                             break;
                         case 4:
                             System.exit(0);
