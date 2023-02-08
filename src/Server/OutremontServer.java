@@ -8,6 +8,8 @@ import java.net.InetAddress;
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,13 +21,22 @@ public class OutremontServer {
         try {
             Implementation obj = new Implementation();
             obj.portsToPing= new int[]{5098, 5099};
+            SimpleDateFormat formatter = new SimpleDateFormat("ddMMyy");
+            Date d = new Date();
+            String date=formatter.format(d);
 
             obj.movieData.put("AVATAR", new HashMap<String, Integer>());
             obj.movieData.put("TITANIC", new HashMap<String, Integer>());
             obj.movieData.put("AVENGERS", new HashMap<String, Integer>());
-            obj.movieData.get("AVATAR").put("OUTM030223", 40);
-            obj.movieData.get("AVENGERS").put("OUTM030223", 30);
-            obj.movieData.get("TITANIC").put("OUTM030223", 30);
+            obj.movieData.get("AVATAR").put("OUTM"+date, 400);
+            obj.movieData.get("AVATAR").put("OUTA"+date, 400);
+            obj.movieData.get("AVATAR").put("OUTE"+date, 400);
+            obj.movieData.get("AVENGERS").put("OUTM"+date, 400);
+            obj.movieData.get("AVENGERS").put("OUTA"+date, 400);
+            obj.movieData.get("AVENGERS").put("OUTE"+date, 400);
+            obj.movieData.get("TITANIC").put("OUTM"+date, 400);
+            obj.movieData.get("TITANIC").put("OUTA"+date, 400);
+            obj.movieData.get("TITANIC").put("OUTE"+date, 400);
 
             Registry registry=LocateRegistry.createRegistry(3003);
             Naming.rebind("Outremont", obj);

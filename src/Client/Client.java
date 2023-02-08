@@ -57,14 +57,49 @@ public class Client {
                             System.out.println(adminInterface.listMovieShowsAvailability(movieName));
                             break;
                         case 4:
-                            System.out.println("Book movie ticket");
-                            // System.exit(0);
+                            System.out.println("Enter the Customer ID");
+                            String customerID=sc.nextLine();
+                            if(checkUserID(customerID).equals("Customer")){
+                                System.out.println("Enter Movie ID : ");
+                                movieID=sc.nextLine();
+                                System.out.println("Enter movie name : ");
+                                movieName=sc.nextLine();
+                                System.out.println("Enter number of tickets you would like to book : ");
+                                int numberOfTickets=sc.nextInt();
+                                System.out.println(adminInterface.bookMovieTickets(customerID, movieID,movieName,numberOfTickets,checkSameServer(movieID,userID)));
+                            }else{
+                                System.out.println("Please enter a valid customer ID");
+                            }
                             break;
                         case 5:
-                            System.out.println("get schedule ticket");
+
+                            System.out.println("Enter the Customer ID");
+                            String customerID_s=sc.nextLine();
+                            if(checkUserID(customerID_s).equals("Customer")){
+                                System.out.println(adminInterface.getBookingSchedule(customerID_s));
+                            }else{
+                                System.out.println("Please enter a valid customer ID");
+                            }
                             break;
                         case 6:
-                            System.out.println("cancel booking");
+                            System.out.println("Enter the Customer ID");
+                            String customerID_c=sc.nextLine();
+                            if(checkUserID(customerID_c).equals("Customer")){
+                                System.out.println("----------------- YOUR BOOKING SCHEDULE --------------------");
+                                System.out.println(adminInterface.getBookingSchedule(customerID_c));
+                                System.out.println("------------------------------------------------------------");
+                                System.out.println("Please enter the movie name you want to cancel the tickets for:-");
+                                movieName=sc.nextLine();
+                                System.out.println("Please enter movie ID for the same");
+                                movieID=sc.nextLine();
+                                System.out.println("Please enter the number of tickets you want to cancel");
+                                int numberOfTickets = sc.nextInt();
+                                System.out.println(adminInterface.cancelMovieTickets(customerID_c,movieID,movieName,numberOfTickets));
+                                System.out.println("");
+
+                            }else{
+                                System.out.println("Please enter a valid customer ID");
+                            }
                             break;
                         case 7:
                             System.exit(0);

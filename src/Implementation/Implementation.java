@@ -45,6 +45,10 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
 
     public static HashMap<String, Integer> serverPort = new HashMap<>();
 
+    public ArrayList sortDate=new ArrayList<>();
+
+    public static HashMap<String,Integer> showSort=new HashMap<>();
+
 
     public int[] portsToPing = new int[2];
 
@@ -52,6 +56,9 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
         serverPort.put("ATW", 5099);
         serverPort.put("VER", 5098);
         serverPort.put("OUT", 5097);
+        showSort.put("M",1);
+        showSort.put("A",2);
+        showSort.put("E",3);
 
     }
 
@@ -80,7 +87,10 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                         int previousCapacity = addMap.get(movieID);
                         addMap.replace(movieID, previousCapacity + bookingCapacity);
                     } else {
+
                         movieData.get(movieName).put(movieID, bookingCapacity);
+                        sortDate.add(movieID.substring(4));
+
                     }
                 }
                 flag = 1;
@@ -90,6 +100,9 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                 movieData.get(movieName).put(movieID, bookingCapacity);
             }
             System.out.println(movieData.entrySet());
+            for(int i=0;i<sortDate.size();i++){
+                System.out.println(sortDate.get(i));
+            }
             return bookingCapacity + " slots for movie " + movieName + " by movie ID " + movieID + " have been added";
         }
 
@@ -286,27 +299,27 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
             String response = sendRequestToServer(this.currentPort, 3, customerID, movieName, movieID, numberOfTickets);
 
             if(response.equals("Your tickets have been successfully cancelled")){
-              HashMap<String, HashMap<String, Integer>> addMap = this.customerSchedule.get(customerID);
-              HashMap<String, Integer> innerMap = addMap.get(movieName);
-              if (innerMap.get(movieID) - numberOfTickets == 0) {
-                  customerData.get(movieName).remove(movieID);
-                  customerSchedule.get(customerID).get(movieName).remove(movieID);
-                  System.out.println("Customer Schedule data: " + customerSchedule.entrySet());
-                  System.out.println("Customer data: " + customerData.entrySet());
+                HashMap<String, HashMap<String, Integer>> addMap = this.customerSchedule.get(customerID);
+                HashMap<String, Integer> innerMap = addMap.get(movieName);
+                if (innerMap.get(movieID) - numberOfTickets == 0) {
+                    customerData.get(movieName).remove(movieID);
+                    customerSchedule.get(customerID).get(movieName).remove(movieID);
+                    System.out.println("Customer Schedule data: " + customerSchedule.entrySet());
+                    System.out.println("Customer data: " + customerData.entrySet());
 
-                  return "Your tickets have been successfully cancelled";
-              } else {
-                  customerData.get(movieName).get(movieID).replace(customerID, innerMap.get(movieID) - numberOfTickets);
-                  customerSchedule.get(customerID).get(movieName).replace(movieID, innerMap.get(movieID) - numberOfTickets);
-                  System.out.println("UDP Customer Schedule data: " + customerSchedule.entrySet());
-                  System.out.println("UDP Customer data: " + customerData.entrySet());
+                    return "Your tickets have been successfully cancelled";
+                } else {
+                    customerData.get(movieName).get(movieID).replace(customerID, innerMap.get(movieID) - numberOfTickets);
+                    customerSchedule.get(customerID).get(movieName).replace(movieID, innerMap.get(movieID) - numberOfTickets);
+                    System.out.println("UDP Customer Schedule data: " + customerSchedule.entrySet());
+                    System.out.println("UDP Customer data: " + customerData.entrySet());
 
-                  return "Your tickets have been successfully cancelled";
-              }
+                    return "Your tickets have been successfully cancelled";
+                }
 
-          }else{
-              return response;
-          }
+            }else{
+                return response;
+            }
 
         } else {
             if (customerSchedule.containsKey(customerID)) {
@@ -387,7 +400,7 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
             }
         }
 
-    return stringToSend;
+        return stringToSend;
     }
     public String receiveFromServerBookTickets(String customerID, String movieID, String movieName, int numberOfTickets){
         String stringToSend="0";
