@@ -12,9 +12,7 @@ import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,12 +39,20 @@ public class AtwaterServer {
             obj.movieData.get("AVATAR").put("ATWM"+date, 400);
             obj.movieData.get("AVATAR").put("ATWA"+date, 400);
             obj.movieData.get("AVATAR").put("ATWE"+date, 400);
+
+            obj.showSort.put("AVATAR",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
+
             obj.movieData.get("AVENGERS").put("ATWM"+date, 400);
             obj.movieData.get("AVENGERS").put("ATWA"+date, 400);
             obj.movieData.get("AVENGERS").put("ATWE"+date, 400);
+            obj.showSort.put("AVENGERS",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
+
+
             obj.movieData.get("TITANIC").put("ATWM"+date, 400);
             obj.movieData.get("TITANIC").put("ATWA"+date, 400);
             obj.movieData.get("TITANIC").put("ATWE"+date, 400);
+            obj.showSort.put("TITANIC",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
+
             Registry registry = LocateRegistry.createRegistry(3001);
             Naming.rebind("Atwater", obj);
             System.out.println("Atwater server ready");

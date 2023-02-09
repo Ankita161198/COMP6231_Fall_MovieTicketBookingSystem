@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.rmi.*;
 import java.rmi.server.*;
+import java.sql.SQLOutput;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -24,30 +25,17 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     //REMOVE SLOTS
     //LOGGER
     //CHECK IF CUSTOMER TRIES TO BOOK THE SAME SHOW FOR ANOTHER THEATRE
-    //CHANGE DATA
-    //DONT ALLOW ADMIN TO ADD SLOTS OF THE PREVIOUS DATA
 
     public String message;
-    public String movieID;
     public String movieName;
-
-    public int numberOfTickets;
-    public int bookingCapacity;
-    public String serverName;
-    public String customerID;
     public int currentPort;
+
     public HashMap<String, HashMap<String, Integer>> movieData = new HashMap<>();
-
-
     public HashMap<String, HashMap<String, HashMap<String, Integer>>> customerData = new HashMap<>();
-
     public HashMap<String, HashMap<String, HashMap<String, Integer>>> customerSchedule = new HashMap<>();
-
     public static HashMap<String, Integer> serverPort = new HashMap<>();
-
-    public ArrayList sortDate=new ArrayList<>();
-
-    public static HashMap<String,Integer> showSort=new HashMap<>();
+    public  HashMap<String,ArrayList<String> > showSort=new HashMap<>();
+    public ArrayList<String> movieArray;
 
 
     public int[] portsToPing = new int[2];
@@ -56,9 +44,6 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
         serverPort.put("ATW", 5099);
         serverPort.put("VER", 5098);
         serverPort.put("OUT", 5097);
-        showSort.put("M",1);
-        showSort.put("A",2);
-        showSort.put("E",3);
 
     }
 
@@ -79,30 +64,35 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
             return "You cannot add slots for the previous dates";
         } else {
             int flag = 0;
-            for (Map.Entry<String, HashMap<String, Integer>> empMap : this.movieData.entrySet()) {
-                if (movieName.equals(empMap.getKey())) {
-                    HashMap<String, Integer> addMap = empMap.getValue();
+            if(movieData.containsKey(movieName)){
+                if(movieData.get(movieName).containsKey(movieID)){
+                    movieData.get(movieName).replace(movieID,bookingCapacity+movieData.get(movieName).get(movieID));
+                }else{
+                    movieData.get(movieName).put(movieID,bookingCapacity);
 
-                    if (addMap.containsKey(movieID)) {
-                        int previousCapacity = addMap.get(movieID);
-                        addMap.replace(movieID, previousCapacity + bookingCapacity);
-                    } else {
+                    if(showSort.get(movieName)==null){
 
-                        movieData.get(movieName).put(movieID, bookingCapacity);
-                        sortDate.add(movieID.substring(4));
-
+                        movieArray=new ArrayList<>();
+                        movieArray.add(movieID.substring(3));
+                        showSort.put(movieName,movieArray);
+                    }
+                    else{
+                        movieArray.add(movieID.substring(3));
+                        showSort.replace(movieName,movieArray);
+                        if(showSort.get(movieName).size()>2)
+                        {
+                            System.out.println("hit");
+                            showSort.replace(movieName,sortDates(movieArray));
+                        }
                     }
                 }
-                flag = 1;
-            }
-            if (flag == 0) {
+            }else{
                 movieData.put(movieName, new HashMap<String, Integer>());
                 movieData.get(movieName).put(movieID, bookingCapacity);
             }
+
             System.out.println(movieData.entrySet());
-            for(int i=0;i<sortDate.size();i++){
-                System.out.println(sortDate.get(i));
-            }
+            System.out.println(showSort.entrySet());
             return bookingCapacity + " slots for movie " + movieName + " by movie ID " + movieID + " have been added";
         }
 
@@ -111,21 +101,68 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     @Override
     public String removeMovieSlots(String movieID, String movieName) {
         int flag = 0;
-        for (Map.Entry<String, HashMap<String, Integer>> empMap : this.movieData.entrySet()) {
-            if (movieName.equals(empMap.getKey())) {
-                HashMap<String, Integer> addMap = empMap.getValue();
-                if (addMap.containsKey(movieID)) {
-                    this.movieData.get(movieName).remove(movieID);
-                    System.out.println("hit");
-                    flag = 1;
+        String nextShow="";
+        if(movieData.containsKey(movieName)){
+            if(movieData.get(movieName).containsKey(movieID)){
+                for(int i=0;i<showSort.get(movieName).size();i++){
+                    System.out.println(showSort.get(movieName).get(i));
+                    if(movieID.substring(3).equals(showSort.get(movieName).get(i))){
+                        System.out.println("line 110");
+                        if(i!=showSort.get(movieName).size()-1)
+                        {
+                            System.out.println("line 113");
+                            nextShow=movieID.substring(0,3)+showSort.get(movieName).get(i+1);
+                            break;
+                        }
+                    }
                 }
-            }
+                System.out.println("next show is "+nextShow);
+                System.out.println(customerData);
+                if(customerData.containsKey(movieName)){
+                    if(customerData.get(movieName).containsKey(movieID)){
+                        HashMap<String, HashMap<String, Integer>> firstHashMap = customerData.get(movieName);
+                        HashMap<String, Integer> secondHashMap = firstHashMap.get(movieID);
+                        firstHashMap.remove(movieID);
+                        firstHashMap.put(nextShow, secondHashMap);
+                        customerData.put(movieName, firstHashMap);
 
+                        for(String key : customerData.get(movieName).get(nextShow).keySet()){
+                            System.out.println(key);
+                            if(customerSchedule.containsKey(key)){
+                                System.out.println("hit");
+                                if(customerSchedule.get(key).get(movieName).containsKey(movieID)){
+                                    System.out.println("hit2");
+                                    customerSchedule.get(key).get(movieName).remove(movieID);
+                                    customerSchedule.get(key).get(movieName).put(nextShow,customerData.get(movieName).get(nextShow).get(key));
+                                }
+                            }
+                        }
+
+
+                        int sum=0;
+                        for(int i:secondHashMap.values()){
+                            sum+=i;
+                        }
+                        if(movieData.containsKey(movieName)){
+                            if(movieData.get(movieName).containsKey(nextShow)){
+                                movieData.get(movieName).replace(nextShow,movieData.get(movieName).get(nextShow)-sum);
+                            }
+                        }
+                    }
+                }
+
+            }
+            movieData.get(movieName).remove(movieID);
+            flag=1;
         }
+
+        System.out.println(movieData.entrySet());
+        System.out.println(customerData.entrySet());
+        System.out.println(customerSchedule.entrySet());
         if (flag == 0) {
             return "Sorry this slot is not available";
         }
-        System.out.println(movieData.entrySet());
+        //   System.out.println(movieData.entrySet());
         return "The slots for " + movieName + " by movie ID: " + movieID + " have been successfully deleted.";
     }
 
@@ -188,13 +225,42 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
         String flag;
         String totalTickets = "";
         System.out.println(customerID + " " + movieID);
+        int count=0;
+        if(customerSchedule.containsKey(customerID) && !movieID.substring(0, 3).equals(customerID.substring(0, 3)) ){
+            if(customerSchedule.get(customerID).containsKey(movieName)){
+
+                HashMap<String, Integer> addMap = customerSchedule.get(customerID).get(movieName);
+                for (String key : addMap.keySet()) {
+                    if(key.substring(3).equals(movieID.substring(3))){
+                        return "You already have a booking for this show in your own area.\nYou cannot book the same show in another area";
+                    }
+                }
+            }
+        }
+
+
+
+        if(customerSchedule.containsKey(customerID)){
+            if(customerSchedule.get(customerID).containsKey(movieName)){
+                HashMap<String,Integer> addMap=customerSchedule.get(customerID).get(movieName);
+                for (Map.Entry<String, Integer> appointment : addMap.entrySet()) {
+                    for(String key:addMap.keySet()){
+                        if(key.substring(0,3)!=customerID.substring(0,3))
+                        {
+                            count++;
+                        }
+                    }
+
+                    if(count>3)
+                        return "Sorry cannot book more than 3 tickets outside your area";
+
+                }
+            }
+        }
+
+
         if (!movieID.substring(0, 3).equals(customerID.substring(0, 3))) {
             this.currentPort = serverPort.get(movieID.substring(0, 3));
-            System.out.println(this.currentPort);
-            this.movieName = movieName;
-            this.movieID = movieID;
-            this.numberOfTickets = numberOfTickets;
-            this.customerID = customerID;
             flag = sendRequestToServer(this.currentPort, 2, customerID, movieName, movieID, numberOfTickets);
             if (flag.startsWith("1")) {
 
@@ -214,21 +280,32 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                     customerSchedule.get(customerID).put(movieName, new HashMap<String, Integer>());
                     customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
                 } else {
+                    if(customerSchedule.get(customerID).get(movieName)==null){
+                        customerSchedule.get(customerID).put(movieName, new HashMap<String, Integer>());
+                        customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
+                    }else{
+                        customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
+                    }
 
-                    customerSchedule.get(customerID).put(movieName, new HashMap<String, Integer>());
-                    customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
                 }
             }
 
         } else {
-            if (this.movieData.containsKey(movieName)) {
-                HashMap<String, Integer> addMap = this.movieData.get(movieName);
-                if (addMap.containsKey(movieID)) {
-                    if (addMap.get(movieID) >= numberOfTickets) {
-                        customerData.put(movieName, new HashMap<String, HashMap<String, Integer>>());
-                        customerData.get(movieName).put(movieID, new HashMap<String, Integer>());
-                        customerData.get(movieName).get(movieID).put(customerID, numberOfTickets);
-
+            if (movieData.containsKey(movieName)) {
+                if (movieData.get(movieName).containsKey(movieID)) {
+                    if (movieData.get(movieName).get(movieID) >= numberOfTickets) {
+                        if(customerData.get(movieName)==null){
+                            customerData.put(movieName, new HashMap<String, HashMap<String, Integer>>());
+                            customerData.get(movieName).put(movieID, new HashMap<String, Integer>());
+                            customerData.get(movieName).get(movieID).put(customerID, numberOfTickets);
+                        }else{
+                            if(customerData.get(movieName).get(movieID)==null){
+                                customerData.get(movieName).put(movieID, new HashMap<String, Integer>());
+                                customerData.get(movieName).get(movieID).put(customerID, numberOfTickets);
+                            }else{
+                                customerData.get(movieName).get(movieID).put(customerID, numberOfTickets);
+                            }
+                        }
                         if (customerSchedule.get(customerID) == null) {
 
                             customerSchedule.put(customerID, new HashMap<String, HashMap<String, Integer>>());
@@ -236,10 +313,14 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                             customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
                         } else {
 
-                            customerSchedule.get(customerID).put(movieName, new HashMap<String, Integer>());
-                            customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
+                            if(customerSchedule.get(customerID).get(movieName)==null){
+                                customerSchedule.get(customerID).put(movieName, new HashMap<String, Integer>());
+                                customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
+                            }else{
+                                customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
+                            }
                         }
-                        this.movieData.get(movieName).replace(movieID, addMap.get(movieID) - numberOfTickets);
+                        this.movieData.get(movieName).replace(movieID, movieData.get(movieName).get(movieID) - numberOfTickets);
                         flag = "0";
                     } else {
                         totalTickets = String.valueOf(this.movieData.get(movieName).get(movieID));
@@ -254,12 +335,10 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
         }
         if (Objects.equals(flag, "1")) {
             return "Can't process this request as seats available for this show are only " + totalTickets;
-
         } else if (Objects.equals(flag, "4")) {
             return "This movie ID does not exist";
         } else if (Objects.equals(flag, "2")) {
             return "Please Enter the correct movie name";
-
         } else
             return numberOfTickets + " tickets for movie " + movieName + " by movie ID:" + movieID + " successfully booked for customer with ID: " + customerID;
 
@@ -268,6 +347,7 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     //  @Override
     public String getBookingSchedule(String customerID) {
         String dataToSend = "";
+        System.out.println(customerSchedule.entrySet());
         if (customerSchedule.containsKey(customerID)) {
             HashMap<String, HashMap<String, Integer>> schedule = customerSchedule.get(customerID);
             dataToSend += "Customer ID: " + customerID + "\n";
@@ -304,15 +384,13 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                 if (innerMap.get(movieID) - numberOfTickets == 0) {
                     customerData.get(movieName).remove(movieID);
                     customerSchedule.get(customerID).get(movieName).remove(movieID);
-                    System.out.println("Customer Schedule data: " + customerSchedule.entrySet());
-                    System.out.println("Customer data: " + customerData.entrySet());
+
 
                     return "Your tickets have been successfully cancelled";
                 } else {
                     customerData.get(movieName).get(movieID).replace(customerID, innerMap.get(movieID) - numberOfTickets);
                     customerSchedule.get(customerID).get(movieName).replace(movieID, innerMap.get(movieID) - numberOfTickets);
-                    System.out.println("UDP Customer Schedule data: " + customerSchedule.entrySet());
-                    System.out.println("UDP Customer data: " + customerData.entrySet());
+
 
                     return "Your tickets have been successfully cancelled";
                 }
@@ -332,19 +410,11 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                                 customerData.get(movieName).remove(movieID);
                                 movieData.get(movieName).replace(movieID, movieData.get(movieName).get(movieID) + (innerMap.get(movieID) - numberOfTickets));
                                 customerSchedule.get(customerID).get(movieName).remove(movieID);
-                                System.out.println("Customer Schedule data: " + customerSchedule.entrySet());
-                                System.out.println("Customer data: " + customerData.entrySet());
-                                System.out.println("Movie data: " + movieData.entrySet());
-
                                 return "Your tickets have been successfully cancelled";
                             } else {
                                 customerData.get(movieName).get(movieID).replace(customerID, innerMap.get(movieID) - numberOfTickets);
                                 movieData.get(movieName).replace(movieID, movieData.get(movieName).get(movieID) + (innerMap.get(movieID) - numberOfTickets));
                                 customerSchedule.get(customerID).get(movieName).replace(movieID, innerMap.get(movieID) - numberOfTickets);
-                                System.out.println("Customer Schedule data: " + customerSchedule.entrySet());
-                                System.out.println("Customer data: " + customerData.entrySet());
-                                System.out.println("Movie data: " + movieData.entrySet());
-
                                 return "Your tickets have been successfully cancelled";
                             }
 
@@ -404,8 +474,9 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     }
     public String receiveFromServerBookTickets(String customerID, String movieID, String movieName, int numberOfTickets){
         String stringToSend="0";
-        if(this.movieData.containsKey(movieName)) {
-            HashMap<String, Integer> addMap = this.movieData.get(movieName);
+        System.out.println(movieData.entrySet());
+        if(movieData.containsKey(movieName)) {
+            HashMap<String, Integer> addMap = movieData.get(movieName);
             if (addMap.containsKey(movieID)) {
                 if (addMap.get(movieID) >= numberOfTickets) {
                     this.customerData.put(movieName, new HashMap<String, HashMap<String, Integer>>());
@@ -472,4 +543,57 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
         }
         return stringToSend;
     }
+
+    public static ArrayList sortDates(ArrayList arr){
+        Collections.sort(arr, new Comparator<String>() {
+            SimpleDateFormat format = new SimpleDateFormat("yyMMdd");
+
+            @Override
+            public int compare(String date1, String date2) {
+                try {
+                    String datePart1 = date1.substring(1);
+                    String datePart2 = date2.substring(1);
+
+                    Date dateOne = format.parse(datePart1);
+                    Date dateTwo = format.parse(datePart2);
+
+                    int dateCompare = dateOne.compareTo(dateTwo);
+                    if (dateCompare != 0) {
+                        return dateCompare;
+                    } else {
+                        char time1 = date1.charAt(0);
+                        char time2 = date2.charAt(0);
+                        if (time1 == 'M') {
+                            if (time2 == 'M') {
+                                return 0;
+                            } else {
+                                return -1;
+                            }
+                        } else if (time1 == 'A') {
+                            if (time2 == 'M') {
+                                return 1;
+                            } else if (time2 == 'A') {
+                                return 0;
+                            } else {
+                                return -1;
+                            }
+                        } else {
+                            if (time2 == 'M' || time2 == 'A') {
+                                return 1;
+                            } else {
+                                return 0;
+                            }
+                        }
+                    }
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                return 0;
+            }
+        });
+
+        return arr;
+    }
+
+
 }

@@ -22,10 +22,7 @@ public class Client {
 
             } else if (userType.equals("Admin")) {
                 String location=checkLocation(userID);
-                System.out.println(location);
                 AdminInterface adminInterface = (AdminInterface) Naming.lookup(location);
-
-              //  System.out.println( adminInterface.say("hello"));
                 while(true){
                     System.out.println(displayAdminMenu());
                     int choice=sc.nextInt();
