@@ -1,15 +1,16 @@
 package Implementation;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.rmi.*;
 import java.rmi.server.*;
-import java.sql.SQLOutput;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -27,11 +28,22 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     public String message;
     public String movieName;
     public int currentPort;
+    public String serverName;
     public HashMap<String, HashMap<String, Integer>> movieData = new HashMap<>();
     public HashMap<String, HashMap<String, HashMap<String, Integer>>> customerData = new HashMap<>();
     public HashMap<String, HashMap<String, HashMap<String, Integer>>> customerSchedule = new HashMap<>();
     public static HashMap<String, Integer> serverPort = new HashMap<>();
     public  HashMap<String,ArrayList<String> > showSort=new HashMap<>();
+    public static HashMap<String,String> file = new HashMap<>();
+
+    public String log;
+    public String Status;
+
+    static {
+        file.put("ATW","ATWserver.txt");
+        file.put("VER", "VERserver.txt");
+        file.put("OUT", "OUTserver.txt");
+    }
     public ArrayList<String> movieArray;
     public int[] portsToPing = new int[2];
 
@@ -51,35 +63,35 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
 
     @Override
     public String addMovieSlots(String movieID, String movieName, int bookingCapacity) throws ParseException {
-
+        log = "Slots not added.";
+        Status = "Failed";
 
         if (checkDate(movieID)==7) {
+            log = "Slots not added as it exceeds 1 week";
+            Status = "Failed";
+            writeToLog("addMovieSlots",movieID+" "+movieName+" "+bookingCapacity,"Status"+Status,"Sorry these slots cannot be added as it exceeds 1 week");
             return "Sorry these slots cannot be added as it exceeds 1 week";
         } else if (checkDate(movieID)==-1) {
+            log = "Slots not added as you cannot add slots for previous ates";
+            Status = "Failed";
+            writeToLog("addMovieSlots",movieID+" "+movieName+" "+bookingCapacity,Status,"You cannot add slots for the previous dates");
+
             return "You cannot add slots for the previous dates";
         } else {
             int flag = 0;
+            System.out.println(movieData.entrySet());
             if(movieData.containsKey(movieName)){
+                System.out.println("hit");
                 if(movieData.get(movieName).containsKey(movieID)){
                     movieData.get(movieName).replace(movieID,bookingCapacity+movieData.get(movieName).get(movieID));
                 }else{
                     movieData.get(movieName).put(movieID,bookingCapacity);
+                    ArrayList<String> temp=showSort.get(movieName);
+                    temp.add(movieID.substring(3));
+                    showSort.put(movieName,sortDates(temp));
 
-                    if(showSort.get(movieName)==null){
 
-                        movieArray=new ArrayList<>();
-                        movieArray.add(movieID.substring(3));
-                        showSort.put(movieName,movieArray);
-                    }
-                    else{
-                        movieArray.add(movieID.substring(3));
-                        showSort.replace(movieName,movieArray);
-                        if(showSort.get(movieName).size()>2)
-                        {
-                            System.out.println("hit");
-                            showSort.replace(movieName,sortDates(movieArray));
-                        }
-                    }
+
                 }
             }else{
                 movieData.put(movieName, new HashMap<String, Integer>());
@@ -88,6 +100,10 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
 
             System.out.println(movieData.entrySet());
             System.out.println(showSort.entrySet());
+            log = "Slots added.";
+            Status = "Passed";
+            writeToLog("addMovieSlots",movieID+" "+movieName+" "+bookingCapacity,Status,bookingCapacity + " slots for movie " + movieName + " by movie ID " + movieID + " have been added");
+
             return bookingCapacity + " slots for movie " + movieName + " by movie ID " + movieID + " have been added";
         }
 
@@ -97,22 +113,25 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     public String removeMovieSlots(String movieID, String movieName) {
         int flag = 0;
         String nextShow="";
+        log = "Slots not removed.";
+        Status = "Failed";
+        System.out.println(movieName);
         if(movieData.containsKey(movieName)){
             if(movieData.get(movieName).containsKey(movieID)){
                 for(int i=0;i<showSort.get(movieName).size();i++){
                     System.out.println(showSort.get(movieName).get(i));
                     if(movieID.substring(3).equals(showSort.get(movieName).get(i))){
-                        System.out.println("line 110");
+
                         if(i!=showSort.get(movieName).size()-1)
                         {
-                            System.out.println("line 113");
+
                             nextShow=movieID.substring(0,3)+showSort.get(movieName).get(i+1);
                             break;
                         }
                     }
                 }
-                System.out.println("next show is "+nextShow);
-                System.out.println(customerData);
+
+
                 if(customerData.containsKey(movieName)){
                     if(customerData.get(movieName).containsKey(movieID)){
                         HashMap<String, HashMap<String, Integer>> firstHashMap = customerData.get(movieName);
@@ -145,23 +164,28 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
 
             }
             movieData.get(movieName).remove(movieID);
-            flag=1;
-        }
+            System.out.println("hittt");
+            log="Slots removed";
+            Status="Passed";
+            writeToLog("removeMovieSlots",movieID+" "+movieName,Status,"The slots for " + movieName + " by movie ID: " + movieID + " have been successfully deleted.");
 
-        System.out.println(movieData.entrySet());
-        System.out.println(customerData.entrySet());
-        System.out.println(customerSchedule.entrySet());
-        if (flag == 0) {
+            return "The slots for " + movieName + " by movie ID: " + movieID + " have been successfully deleted.";
+
+        }else
+        {
+
+            System.out.println("hit2");
+            writeToLog("removeMovieSlots",movieID+" "+movieName,Status,"The slots for " + movieName + " by movie ID: " + movieID + " have been successfully deleted.");
             return "Sorry this slot is not available";
         }
-        //   System.out.println(movieData.entrySet());
-        return "The slots for " + movieName + " by movie ID: " + movieID + " have been successfully deleted.";
-    }
+
+       }
 
     @Override
     public String listMovieShowsAvailability(String movieName) throws ExecutionException, InterruptedException {
-        //   this.requestType=1;
         this.movieName = movieName;
+        log="Shows not listed";
+        Status="Failed";
         String responseString3 = "";
         for (Map.Entry<String, HashMap<String, Integer>> empMap : movieData.entrySet()) {
             System.out.println("hit");
@@ -183,12 +207,25 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
         String responseString2 = response2.get();
 
 
-        String available = "The available shows for " + movieName + " are:\n" + responseString3 + "\n" + responseString1 + "\n" + responseString2;
-        return available;
+        String available =  responseString3 + "\n" + responseString1 + "\n" + responseString2;
+        if(available.equals("\n"+"\n"))
+        {
+            writeToLog("listMovieShowsAvailability",movieName,Status,"No shows available");
+
+            return "";
+        }else{
+            log="Show are available";
+            Status="Passed";
+            writeToLog("listMovieShowsAvailability",movieName,Status,available);
+
+            return available;
+        }
+
     }
 
 
     public String sendRequestToServer(int port, int requestType, String userID, String movieName, String movieID, int noOfTickets) {
+
 
         try (DatagramSocket socket = new DatagramSocket()) {
             String requestString = requestType + ";" + userID + ";" + movieName + ";" + movieID + ";" + noOfTickets;
@@ -224,6 +261,10 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                 for (String key : addMap.keySet()) {
                     if(!customerSchedule.get(customerID).get(movieName).containsKey(movieID)){
                         if(key.substring(3).equals(movieID.substring(3))){
+                            log="Booking already exists in another theatre";
+                            Status="Failed";
+                            writeToLog("bookMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"You already have a booking for this show in your one area area.\nYou cannot book the same show in another area");
+
                             return "You already have a booking for this show in your one area area.\nYou cannot book the same show in another area";
 
                         }
@@ -239,8 +280,12 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                     {
                         System.out.println(count);
                         count++;
-                        if(count>=3)
-                            return "Sorry cannot book more than 3 tickets outside your area";
+                        if(count>=3){
+                            log="More than 3 bookings in other areas";
+                            Status="Failed";
+                            writeToLog("bookMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Sorry cannot book more than 3 tickets outside your area");
+
+                            return "Sorry cannot book more than 3 tickets outside your area";}
                     }
                 }
             }
@@ -322,13 +367,30 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
             }
         }
         if (Objects.equals(flag, "1")) {
+            log="Limited seats available";
+            Status="Failed";
+            writeToLog("bookMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Can't process this request as seats available for this show are only " + totalTickets);
+
             return "Can't process this request as seats available for this show are only " + totalTickets;
         } else if (Objects.equals(flag, "4")) {
+            log="Movie ID does not exist";
+            Status="Failed";
+            writeToLog("bookMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"This movie ID does not exist");
+
             return "This movie ID does not exist";
         } else if (Objects.equals(flag, "2")) {
+            log="Movie name does not exist";
+            Status="Failed";
+            writeToLog("bookMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Please Enter the correct movie name");
+
             return "Please Enter the correct movie name";
-        } else
+        } else{
+            log="Tickets booked successfully";
+            Status="Passed";
+            writeToLog("bookMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,numberOfTickets + " tickets for movie " + movieName + " by movie ID:" + movieID + " successfully booked for customer with ID: " + customerID);
             return numberOfTickets + " tickets for movie " + movieName + " by movie ID:" + movieID + " successfully booked for customer with ID: " + customerID;
+
+        }
 
     }
 
@@ -355,6 +417,9 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
             }
         }
 
+        log="Schedule fetched successfully";
+        Status="Passed";
+        writeToLog("getBookingSchedule",customerID,Status,dataToSend);
 
         return dataToSend;
     }
@@ -373,17 +438,27 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                     customerData.get(movieName).remove(movieID);
                     customerSchedule.get(customerID).get(movieName).remove(movieID);
 
+                    log="Movie tickets cancelled successfully";
+                    Status="Passed";
+                    writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Your tickets have been successfully cancelled");
 
                     return "Your tickets have been successfully cancelled";
                 } else {
                     customerData.get(movieName).get(movieID).replace(customerID, innerMap.get(movieID) - numberOfTickets);
                     customerSchedule.get(customerID).get(movieName).replace(movieID, innerMap.get(movieID) - numberOfTickets);
+                    log="Movie tickets cancelled successfully";
+                    Status="Passed";
+                    writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Your tickets have been successfully cancelled");
 
 
                     return "Your tickets have been successfully cancelled";
                 }
 
             }else{
+                log="Movie tickets cancelled successfully";
+                Status="Passed";
+                writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Your tickets have been successfully cancelled");
+
                 return response;
             }
 
@@ -398,24 +473,48 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                                 customerData.get(movieName).remove(movieID);
                                 movieData.get(movieName).replace(movieID, movieData.get(movieName).get(movieID) + (innerMap.get(movieID) - numberOfTickets));
                                 customerSchedule.get(customerID).get(movieName).remove(movieID);
+                                log="Movie tickets cancelled successfully";
+                                Status="Passed";
+                                writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Your tickets have been successfully cancelled");
+
                                 return "Your tickets have been successfully cancelled";
                             } else {
                                 customerData.get(movieName).get(movieID).replace(customerID, innerMap.get(movieID) - numberOfTickets);
                                 movieData.get(movieName).replace(movieID, movieData.get(movieName).get(movieID) + (innerMap.get(movieID) - numberOfTickets));
                                 customerSchedule.get(customerID).get(movieName).replace(movieID, innerMap.get(movieID) - numberOfTickets);
+                                log="Movie tickets cancelled successfully";
+                                Status="Passed";
+                                writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Your tickets have been successfully cancelled");
+
                                 return "Your tickets have been successfully cancelled";
                             }
 
                         } else {
+                            log="The number of tickets you want to cancel is more exceeds your booking";
+                            Status="Failed";
+                            writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"The number of tickets you want to cancel is more exceeds your booking");
+
                             return "The number of tickets you want to cancel is more exceeds your booking";
                         }
                     } else {
+                        log="Incorrect Movie ID";
+                        Status="Failed";
+                        writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Please enter the correct Movie ID");
+
                         return "Please enter the correct Movie ID";
                     }
                 } else {
+                    log="Incorrect movie name";
+                    Status="Failed";
+                    writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Please enter the correct movie name");
+
                     return "Please enter the correct movie name";
                 }
             } else {
+                log="No bookings available for this customer ID";
+                Status="Failed";
+                writeToLog("cancelMovieTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"There are no bookings available for this customer ID");
+
                 return "There are no bookings available for this customer ID";
             }
         }
@@ -435,13 +534,21 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
 
 
         if(userDate.before(currentDate)){
+            log="Date is of the previous days";
+            Status="Failed";
+            writeToLog("addMovieSlots",movieID,Status,"Date is of the previous days");
             return -1;
         }
 
 
         if (c.getTime().compareTo(userDate) < 0) {
+            log="Date exceeds 1 week";
+            Status="Failed";
+            writeToLog("addMovieSlots",movieID,Status,"Date exceeds 1 week");
+
             return 7;
         } else {
+
             return 0;
         }
 
@@ -457,6 +564,9 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                 stringToSend+=key+" ";
             }
         }
+        log="List shows availability through UDP";
+        Status="Passed";
+        writeToLog("receiveFromServerListShows",movieName,Status,"List shows availability through UDP");
 
         return stringToSend;
     }
@@ -482,16 +592,29 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                         this.customerSchedule.get(customerID).get(movieName).put(movieID, numberOfTickets);
                     }
                     this.movieData.get(movieName).replace(movieID, addMap.get(movieID) - numberOfTickets);
+                    log="Book tickets for another server";
+                    Status="Passed";
+                    writeToLog("receiveFromServerBookTickets",customerID+" "+movieName+" "+movieID+" "+numberOfTickets,Status,"Booked successfully");
+
                     stringToSend = "0";
 
                 } else {
+
                     stringToSend = "1 "+this.movieData.get(movieName).get(movieID);
                 }
             } else {
+                log="Movie ID does not exist";
+                Status="Failed";
+                writeToLog("receiveFromServerBookTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"This movie ID does not exist");
+
                 stringToSend = "4";
             }
         }
         else{
+            log="Movie name does not exist";
+            Status="Failed";
+            writeToLog("receiveFromServerBookTickets",customerID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Please Enter the correct movie name");
+
             stringToSend="2";
         }
         return stringToSend;
@@ -521,12 +644,24 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                         stringToSend = "The number of tickets you want to cancel is more exceeds your booking";
                     }
                 } else {
+                    log="Incorrect Movie ID";
+                    Status="Failed";
+                    writeToLog("receiveFromServerCancelTickets",userID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Please enter the correct Movie ID");
+
                     stringToSend = "Please enter the correct Movie ID";
                 }
             } else {
+                log="Incorrect movie name";
+                Status="Failed";
+                writeToLog("cancelMovieTickets",userID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"Please enter the correct movie name");
+
                 stringToSend = "Please enter the correct movie name";
             }
         } else {
+            log="No bookings available for this customer ID";
+            Status="Failed";
+            writeToLog("cancelMovieTickets",userID+" "+movieID+" "+movieName+" "+numberOfTickets,Status,"There are no bookings available for this customer ID");
+
             stringToSend = "There are no bookings available for this customer ID";
         }
         return stringToSend;
@@ -583,5 +718,19 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
         return arr;
     }
 
+    public void writeToLog(String operation, String params, String status, String responceDetails) {
+        try {
 
+
+            FileWriter myWriter = new FileWriter("C:\\Users\\14389\\IdeaProjects\\Assignment1_DSD\\src\\Logs\\"+file.get(this.serverName),true);
+            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+            String log = dateFormat.format(LocalDateTime.now()) + " : " + operation + " : " + params + " : " + status
+                    + " : " + responceDetails + "\n";
+            myWriter.write(log);
+            myWriter.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
 }

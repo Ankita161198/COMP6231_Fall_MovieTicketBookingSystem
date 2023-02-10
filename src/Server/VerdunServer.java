@@ -16,6 +16,7 @@ public class VerdunServer {
         try {
 
             Implementation obj = new Implementation();
+            obj.serverName="VER";
             obj.portsToPing= new int[]{5099, 5097};
 
             SimpleDateFormat formatter = new SimpleDateFormat("ddMMyy");

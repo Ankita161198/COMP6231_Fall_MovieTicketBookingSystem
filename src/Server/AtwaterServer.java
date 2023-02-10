@@ -28,7 +28,9 @@ public class AtwaterServer {
 
         try {
             Implementation obj = new Implementation();
+            obj.serverName="ATW";
             obj.portsToPing= new int[]{5098, 5097};
+
             SimpleDateFormat formatter = new SimpleDateFormat("ddMMyy");
             Date d = new Date();
             String date=formatter.format(d);

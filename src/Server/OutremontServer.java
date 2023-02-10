@@ -18,6 +18,7 @@ public class OutremontServer {
     public static void main(String[] args) {
         try {
             Implementation obj = new Implementation();
+            obj.serverName="OUT";
             obj.portsToPing= new int[]{5098, 5099};
             SimpleDateFormat formatter = new SimpleDateFormat("ddMMyy");
             Date d = new Date();
