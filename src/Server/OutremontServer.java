@@ -9,9 +9,7 @@ import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class OutremontServer {
     public OutremontServer() {
@@ -31,12 +29,19 @@ public class OutremontServer {
             obj.movieData.get("AVATAR").put("OUTM"+date, 400);
             obj.movieData.get("AVATAR").put("OUTA"+date, 400);
             obj.movieData.get("AVATAR").put("OUTE"+date, 400);
+            obj.showSort.put("AVATAR",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
+
             obj.movieData.get("AVENGERS").put("OUTM"+date, 400);
             obj.movieData.get("AVENGERS").put("OUTA"+date, 400);
             obj.movieData.get("AVENGERS").put("OUTE"+date, 400);
+            obj.showSort.put("AVENGERS",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
+
             obj.movieData.get("TITANIC").put("OUTM"+date, 400);
             obj.movieData.get("TITANIC").put("OUTA"+date, 400);
             obj.movieData.get("TITANIC").put("OUTE"+date, 400);
+            obj.showSort.put("TITANIC",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
+
+
 
             Registry registry=LocateRegistry.createRegistry(3003);
             Naming.rebind("Outremont", obj);

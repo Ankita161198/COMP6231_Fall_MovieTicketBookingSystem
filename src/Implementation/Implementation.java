@@ -22,22 +22,17 @@ import Interface.CustomerInterface;
 public class Implementation extends UnicastRemoteObject implements AdminInterface, CustomerInterface {
 
 
-    //REMOVE SLOTS
     //LOGGER
-    //CHECK IF CUSTOMER TRIES TO BOOK THE SAME SHOW FOR ANOTHER THEATRE
 
     public String message;
     public String movieName;
     public int currentPort;
-
     public HashMap<String, HashMap<String, Integer>> movieData = new HashMap<>();
     public HashMap<String, HashMap<String, HashMap<String, Integer>>> customerData = new HashMap<>();
     public HashMap<String, HashMap<String, HashMap<String, Integer>>> customerSchedule = new HashMap<>();
     public static HashMap<String, Integer> serverPort = new HashMap<>();
     public  HashMap<String,ArrayList<String> > showSort=new HashMap<>();
     public ArrayList<String> movieArray;
-
-
     public int[] portsToPing = new int[2];
 
     static {
@@ -125,13 +120,10 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
                         firstHashMap.remove(movieID);
                         firstHashMap.put(nextShow, secondHashMap);
                         customerData.put(movieName, firstHashMap);
-
                         for(String key : customerData.get(movieName).get(nextShow).keySet()){
                             System.out.println(key);
                             if(customerSchedule.containsKey(key)){
-                                System.out.println("hit");
                                 if(customerSchedule.get(key).get(movieName).containsKey(movieID)){
-                                    System.out.println("hit2");
                                     customerSchedule.get(key).get(movieName).remove(movieID);
                                     customerSchedule.get(key).get(movieName).put(nextShow,customerData.get(movieName).get(nextShow).get(key));
                                 }
@@ -197,8 +189,7 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
 
 
     public String sendRequestToServer(int port, int requestType, String userID, String movieName, String movieID, int noOfTickets) {
-        //1:listmovies
-        //2:bookschedule
+
         try (DatagramSocket socket = new DatagramSocket()) {
             String requestString = requestType + ";" + userID + ";" + movieName + ";" + movieID + ";" + noOfTickets;
 
@@ -231,29 +222,26 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
 
                 HashMap<String, Integer> addMap = customerSchedule.get(customerID).get(movieName);
                 for (String key : addMap.keySet()) {
-                    if(key.substring(3).equals(movieID.substring(3))){
-                        return "You already have a booking for this show in your own area.\nYou cannot book the same show in another area";
+                    if(!customerSchedule.get(customerID).get(movieName).containsKey(movieID)){
+                        if(key.substring(3).equals(movieID.substring(3))){
+                            return "You already have a booking for this show in your one area area.\nYou cannot book the same show in another area";
+
+                        }
                     }
                 }
             }
         }
-
-
-
         if(customerSchedule.containsKey(customerID)){
-            if(customerSchedule.get(customerID).containsKey(movieName)){
-                HashMap<String,Integer> addMap=customerSchedule.get(customerID).get(movieName);
-                for (Map.Entry<String, Integer> appointment : addMap.entrySet()) {
-                    for(String key:addMap.keySet()){
-                        if(key.substring(0,3)!=customerID.substring(0,3))
-                        {
-                            count++;
-                        }
+
+            for(String movieIndex:customerSchedule.get(customerID).keySet()){
+                for(String movieIDindex:customerSchedule.get(customerID).get(movieIndex).keySet()){
+                    if(movieIDindex.substring(0,3)!=customerID.substring(0,3))
+                    {
+                        System.out.println(count);
+                        count++;
+                        if(count>=3)
+                            return "Sorry cannot book more than 3 tickets outside your area";
                     }
-
-                    if(count>3)
-                        return "Sorry cannot book more than 3 tickets outside your area";
-
                 }
             }
         }
@@ -463,7 +451,7 @@ public class Implementation extends UnicastRemoteObject implements AdminInterfac
     public String receiveFromServerListShows(String movieName){
         String stringToSend="";
         if(this.movieData.containsKey(movieName)){
-            System.out.println("hi");
+
             HashMap<String, Integer> addMap = this.movieData.get(movieName);
             for ( String key : addMap.keySet() ) {
                 stringToSend+=key+" ";

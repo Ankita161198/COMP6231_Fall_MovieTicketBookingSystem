@@ -9,10 +9,7 @@ import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class VerdunServer {
     public static void main(String[] args) {
@@ -31,12 +28,16 @@ public class VerdunServer {
             obj.movieData.get("AVATAR").put("VERM"+date, 400);
             obj.movieData.get("AVATAR").put("VERA"+date, 400);
             obj.movieData.get("AVATAR").put("VERE"+date, 400);
+            obj.showSort.put("AVATAR",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
             obj.movieData.get("AVENGERS").put("VERM"+date, 400);
             obj.movieData.get("AVENGERS").put("VERA"+date, 400);
             obj.movieData.get("AVENGERS").put("VERE"+date, 400);
+            obj.showSort.put("AVENGERS",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
+
             obj.movieData.get("TITANIC").put("VERM"+date, 400);
             obj.movieData.get("TITANIC").put("VERA"+date, 400);
             obj.movieData.get("TITANIC").put("VERE"+date, 400);
+            obj.showSort.put("TITANIC",new ArrayList<>(Arrays.asList("M"+date, "A"+date, "E"+date)));
 
 
             Registry registry=LocateRegistry.createRegistry(3002);
